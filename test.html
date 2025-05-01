@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Тест API</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    .message {
+      border: 1px solid #ccc;
+      padding: 10px;
+      margin: 10px 0;
+      border-radius: 5px;
+    }
+    .user { background-color: #e3f2fd; }
+    .ai { background-color: #f1f8e9; }
+    button {
+      padding: 10px 15px;
+      background: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    input, textarea {
+      width: 100%;
+      padding: 10px;
+      margin: 10px 0;
+      border-radius: 4px;
+      border: 1px solid #ddd;
+    }
+    #loading {
+      display: none;
+      margin: 10px 0;
+      font-style: italic;
+      color: #666;
+    }
+    #status {
+      margin: 10px 0;
+      padding: 10px;
+      border-radius: 4px;
+    }
+    .success { background-color: #dff0d8; color: #3c763d; }
+    .error { background-color: #f2dede; color: #a94442; }
+  </style>
+</head>
+<body>
+  <h1>Тест API чата</h1>
+  
+  <div>
+    <textarea id="userMessage" rows="4" placeholder="Введите сообщение..."></textarea>
+    <button id="sendButton">Отправить</button>
+  </div>
+  
+  <div id="loading">Отправка запроса и ожидание ответа...</div>
+  <div id="status"></div>
+  
+  <h2>Обмен сообщениями:</h2>
+  <div id="messages"></div>
+  
+  <script>
+    const userMessage = document.getElementById('userMessage');
+    const sendButton = document.getElementById('sendButton');
+    const loading = document.getElementById('loading');
+    const status = document.getElementById('status');
+    const messages = document.getElementById('messages');
+
+    // Функция отправки запроса
+    async function sendRequest() {
+      const messageText = userMessage.value.trim();
+      if (!messageText) return;
+      
+      // Добавляем сообщение пользователя
+      const userDiv = document.createElement('div');
+      userDiv.className = 'message user';
+      userDiv.textContent = messageText;
+      messages.prepend(userDiv);
+      
+      // Показываем индикатор загрузки
+      loading.style.display = 'block';
+      status.className = '';
+      status.textContent = '';
+      
+      try {
+        console.log('Отправка запроса на /chat');
+        
+        // Отправляем запрос
+        const response = await fetch('/chat', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ message: messageText })
+        });
+        
+        console.log('Получен ответ:', response.status);
+        
+        // Проверяем статус ответа
+        if (!response.ok) {
+          throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+        
+        // Получаем данные
+        const data = await response.json();
+        console.log('Данные ответа:', data);
+        
+        // Добавляем ответ ИИ
+        const aiDiv = document.createElement('div');
+        aiDiv.className = 'message ai';
+        aiDiv.textContent = data.reply;
+        messages.prepend(aiDiv);
+        
+        // Сообщение об успехе
+        status.className = 'success';
+        status.textContent = 'Запрос успешно выполнен!';
+        
+        // Очищаем поле ввода
+        userMessage.value = '';
+        
+      } catch (error) {
+        console.error('Ошибка:', error);
+        
+        // Сообщение об ошибке
+        status.className = 'error';
+        status.textContent = `Ошибка: ${error.message}`;
+        
+        // Добавляем сообщение об ошибке
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'message ai error';
+        errorDiv.textContent = 'Произошла ошибка при получении ответа.';
+        messages.prepend(errorDiv);
+      } finally {
+        // Скрываем индикатор загрузки
+        loading.style.display = 'none';
+      }
+    }
+    
+    // Обработчик кнопки отправки
+    sendButton.addEventListener('click', sendRequest);
+    
+    // Обработчик нажатия Enter
+    userMessage.addEventListener('keypress', function(e) {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendRequest();
+      }
+    });
+  </script>
+</body>
+</html>
